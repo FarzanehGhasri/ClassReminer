@@ -1,0 +1,8 @@
+Dear {name},
+
+Here is your link for today's class on {schedule_weekday} at {schedule_time}:
+{class_link}
+
+See you there!
+Masi English Academy
+{date}
