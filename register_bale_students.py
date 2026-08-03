@@ -424,6 +424,9 @@ class Keyboards:
             + [[{"text": BACK_TO_MAIN_LABEL, "callback_data": "back_to_main"}]]
         }
 
+    
+
+
     @staticmethod
     def back_only():
         return {"inline_keyboard": [[{"text": BACK_TO_MAIN_LABEL, "callback_data": "back_to_main"}]]}
@@ -777,13 +780,26 @@ class RegistrationBot:
             return
 
         if data == "contact_us":
-            # Placeholder - real behavior to be defined later.
             self.client.send_message(
                 chat_id,
                 "📞 تماس با ما\n\n"
-                "در صورت نیاز به راهنمایی یا پشتیبانی، می‌توانید با شماره زیر تماس بگیرید:\n\n"
-                "📱 09122201562",
-                Keyboards.main_menu(),
+                "برای ارتباط با آکادمی، روی دکمه زیر بزنید تا شماره به صورت خودکار برای تماس باز شود.",
+                {
+                    "inline_keyboard": [
+                        [
+                            {
+                                "text": "📞 تماس با آکادمی",
+                                "url": "tel:+989122201562"
+                            }
+                        ],
+                        [
+                            {
+                                "text": "بازگشت",
+                                "callback_data": "back_to_main"
+                            }
+                        ]
+                    ]
+                }
             )
             return
 
