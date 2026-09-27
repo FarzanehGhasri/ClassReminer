@@ -16,6 +16,7 @@ from channels.telegram_channel import TelegramChannel
 from infrastructure.bot_api_client import BotApiClient
 #from infrastructure.brevo_email_client import BrevoEmailClient
 from infrastructure.csv_recipient_repository import CsvRecipientRepository
+from infrastructure.postgres_student_repository import PostgresStudentRepository
 from infrastructure.email_admin_alerter import EmailAdminAlerter
 from infrastructure.file_template_renderer import FileTemplateRenderer
 from infrastructure.smtp_client import SmtpClient, SmtpCredentials
@@ -40,6 +41,21 @@ def build_email_client():
     ))
 
 
+def build_recipient_repository():
+    """Picks the recipient source based on RECIPIENT_SOURCE in .env.
+    'postgres' = the student/class/student_class tables (docker-compose up -d).
+    'csv' = the original data/students.csv, kept so the old setup still runs.
+
+    Open/Closed in practice: both satisfy RecipientRepository, and the
+    scheduler cannot tell which one it was handed."""
+    if settings.RECIPIENT_SOURCE == "csv":
+        return CsvRecipientRepository(settings.RECIPIENTS_CSV_PATH)
+    return PostgresStudentRepository(
+        settings.postgres_dsn(),
+        connect_timeout=settings.POSTGRES_CONNECT_TIMEOUT,
+    )
+
+
 def build_scheduler() -> Scheduler:
     email_client = build_email_client()
     renderer = FileTemplateRenderer(settings.TEMPLATES_DIR)
@@ -51,7 +67,7 @@ def build_scheduler() -> Scheduler:
     ]
 
     return Scheduler(
-        repository=CsvRecipientRepository(settings.RECIPIENTS_CSV_PATH),
+        repository=build_recipient_repository(),
         schedule_checker=ScheduleChecker(settings.SCHEDULE_TOLERANCE_MINUTES, settings.NOTIFICATION_LEAD_MINUTES),
         duplicate_guard=SqliteDuplicateGuard(settings.SENT_LOG_DB_PATH),
         channels=channels,

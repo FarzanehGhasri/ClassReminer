@@ -1,0 +1,25 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: classreminer-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-classreminer}
+      POSTGRES_USER: ${POSTGRES_USER:-classreminer}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-classreminer}
+      # Persian text sorts correctly only if the database is UTF-8.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Anything in here runs once, in filename order, on an empty data volume.
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-classreminer} -d ${POSTGRES_DB:-classreminer}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:

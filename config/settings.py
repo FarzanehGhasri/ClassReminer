@@ -22,6 +22,32 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 BALE_API_BASE = "https://tapi.bale.ai"
 BALE_BOT_TOKEN = os.environ.get("BALE_BOT_TOKEN", "")
 
+# ---------------------------------------------------------------------------
+# Recipient source: "postgres" (docker-compose.yml) or "csv" (the old file).
+# ---------------------------------------------------------------------------
+RECIPIENT_SOURCE = os.environ.get("RECIPIENT_SOURCE", "postgres")
+
+POSTGRES_HOST = os.environ.get("POSTGRES_HOST", "localhost")
+POSTGRES_PORT = int(os.environ.get("POSTGRES_PORT", "5432"))
+POSTGRES_DB = os.environ.get("POSTGRES_DB", "classreminer")
+POSTGRES_USER = os.environ.get("POSTGRES_USER", "classreminer")
+POSTGRES_PASSWORD = os.environ.get("POSTGRES_PASSWORD", "classreminer")
+POSTGRES_CONNECT_TIMEOUT = int(os.environ.get("POSTGRES_CONNECT_TIMEOUT", "10"))
+
+# A full DSN wins if given (e.g. a managed-database URL); otherwise one is
+# assembled from the parts above.
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
+
+
+def postgres_dsn() -> str:
+    if DATABASE_URL:
+        return DATABASE_URL
+    return (
+        f"host={POSTGRES_HOST} port={POSTGRES_PORT} dbname={POSTGRES_DB} "
+        f"user={POSTGRES_USER} password={POSTGRES_PASSWORD}"
+    )
+
+
 RECIPIENTS_CSV_PATH = os.environ.get("RECIPIENTS_CSV_PATH", os.path.join(BASE_DIR, "data", "students.csv"))
 SENT_LOG_DB_PATH = os.environ.get("SENT_LOG_DB_PATH", os.path.join(BASE_DIR, "data", "sent_log.db"))
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")

@@ -27,9 +27,19 @@ solid-email-automation/
 │   ├── telegram_channel.py                  # sends via BotApiClient
 │   └── bale_channel.py                      # sends via BotApiClient (Telegram-compatible API)
 │
+├── docker-compose.yml                       # PostgreSQL 16 service (the database)
+├── db/init/
+│   ├── 01_schema.sql                        # student / class / student_class + all validation
+│   └── 02_seed.sql                          # sample Persian data, first start only
+├── docs/
+│   └── DATABASE.md                          # schema reference + normal-form analysis
+├── scripts/
+│   └── import_students_csv.py               # one-off CSV → PostgreSQL migration
+│
 ├── infrastructure/                          # concrete implementations of the other interfaces
 │   ├── __init__.py
-│   ├── csv_recipient_repository.py          # RecipientRepository → reads data/students.csv
+│   ├── postgres_student_repository.py       # RecipientRepository → PostgreSQL (default)
+│   ├── csv_recipient_repository.py          # RecipientRepository → data/students.csv (legacy)
 │   ├── sqlite_duplicate_guard.py            # DuplicateGuard → reads/writes data/sent_log.db
 │   ├── file_template_renderer.py            # TemplateRenderer → reads templates/*.txt
 │   ├── smtp_client.py                       # raw SMTP transport (used by EmailChannel)
@@ -47,7 +57,7 @@ solid-email-automation/
 │   └── settings.py                          # all config, reads from .env
 │
 ├── data/
-│   ├── students.csv                         # recipient list + per-recipient schedule
+│   ├── students.csv                         # legacy recipient list (RECIPIENT_SOURCE=csv)
 │   └── sent_log.db                          # (created at runtime) duplicate-send guard
 │
 ├── logs/
@@ -81,12 +91,26 @@ Dependency Inversion — core/scheduler.py (high-level policy) depends only on c
 
 Reusing this for a future project
 Copy core/ and utils/ unchanged.
-Write new infrastructure//channels/ classes only for what's actually different (e.g. PostgresRecipientRepository, SlackChannel).
+Write new infrastructure//channels/ classes only for what's actually different (PostgresStudentRepository is the worked example; SlackChannel would be another).
 Rewire main.py's build_scheduler() with the new pieces.
+Database
+The recipient list lives in PostgreSQL: three tables (student, class,
+student_class) with the Persian-name, Iranian-phone and e-mail rules enforced
+as SQL domains rather than trusted to the application.
+
+bash
+docker compose up -d                 # starts PostgreSQL, applies db/init/*.sql
+docker compose exec db psql -U classreminer -d classreminer
+
+See docs/DATABASE.md for the schema, the validation rules, how to import the
+old CSVs, and why the design is in normal form. Set RECIPIENT_SOURCE=csv to
+fall back to data/students.csv.
+
 Setup
 bash
 pip install -r requirements.txt --break-system-packages
 cp .env.example .env   # fill in credentials
+docker compose up -d   # start the database
 python3 main.py
 Schedule it
 */5 * * * * cd /opt/solid-email-automation && /usr/bin/python3 main.py
