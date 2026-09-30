@@ -24,11 +24,51 @@ schema you have to drop the volume, which deletes all data:
 docker compose down -v && docker compose up -d
 ```
 
-Connect with `psql`:
+## Looking at the data
+
+PostgreSQL has no web interface of its own. Port 5432 speaks the PostgreSQL
+wire protocol, not HTTP, so opening `http://localhost:5432` in a browser
+returns an empty response — that error means the server is running, not that
+something is broken. Reading the data needs a client.
+
+**Terminal.** No password needed; connections over the container's own socket
+are trusted:
 
 ```bash
 docker compose exec db psql -U classreminer -d classreminer
 ```
+
+Useful once inside: `\dt` lists tables, `\d student` describes one, `\dv`
+lists views, `\q` quits.
+
+**Browser.** `docker compose up -d` also starts Adminer on
+<http://localhost:8080>. Log in with:
+
+| Field | Value |
+| --- | --- |
+| System | PostgreSQL |
+| Server | `db` (pre-filled) |
+| Username | `classreminer` |
+| Password | whatever `POSTGRES_PASSWORD` is in `.env` |
+| Database | `classreminer` |
+
+Server is `db`, not `localhost`: inside the Docker network, containers reach
+each other by service name. `localhost` from Adminer's point of view is the
+Adminer container itself.
+
+Adminer is bound to `127.0.0.1`, so it is reachable only from the machine
+running Docker. It asks for the database password, but it is still an
+administrative tool — do not publish it. On a server, either delete the
+service from `docker-compose.yml` or reach it through an SSH tunnel:
+
+```bash
+ssh -L 8080:127.0.0.1:8080 you@your-server
+```
+
+**Desktop client.** TablePlus, DBeaver or pgAdmin. Connect to host
+`localhost`, port `5432`, database `classreminer`, user `classreminer`, and
+the password from `.env`. Here the host *is* `localhost`, because the client
+runs on your machine and reaches Postgres through the published port.
 
 Then point the reminder job at it (`.env`):
 

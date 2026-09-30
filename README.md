@@ -115,7 +115,8 @@ as SQL domains rather than trusted to the application.
 
 bash
 docker compose up -d                 # starts PostgreSQL, applies db/init/*.sql
-docker compose exec db psql -U classreminer -d classreminer
+docker compose exec db psql -U classreminer -d classreminer   # terminal
+                                     # or http://localhost:8080 for a browser GUI
 
 See docs/DATABASE.md for the schema, the validation rules, how to import the
 old CSVs, and why the design is in normal form. Set RECIPIENT_SOURCE=csv to
