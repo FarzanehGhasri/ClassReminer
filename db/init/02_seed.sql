@@ -4,11 +4,11 @@
 BEGIN;
 
 INSERT INTO student (first_name, last_name, phone_number, email, bale_chat_id) VALUES
-    ('درسا',    'قصری',      '09122025452', 'farzanehghasri.dorsa@gmail.com', '1876190191'),
-    ('مهزیار',  'گیلانپور',  '09385818976', 'mgillanpour79@gmail.com',        '194964895'),
-    ('زهرا',    'محمدی',     '09121234567', 'zahra.mohammadi@example.com',    NULL),
-    ('علی',     'رضایی',     '09351112233', 'ali.rezaei@example.com',         NULL),
-    ('نیلوفر',  'حسین‌زاده',  '09309998877', 'niloofar.h@example.com',         NULL);
+    ('درسا',    'قصری',      '+989122025452', 'farzanehghasri.dorsa@gmail.com', '1876190191'),
+    ('مهزیار',  'گیلانپور',  '+989385818976', 'mgillanpour79@gmail.com',        '194964895'),
+    ('زهرا',    'محمدی',     '+989121234567', 'zahra.mohammadi@example.com',    NULL),
+    ('علی',     'رضایی',     '+989351112233', 'ali.rezaei@example.com',         NULL),
+    ('نیلوفر',  'حسین‌زاده',  '+989309998877', 'niloofar.h@example.com',         NULL);
 
 -- A private online class, a group online class, and an in-person class.
 INSERT INTO class (class_day, class_time, class_link, delivery_mode, class_format) VALUES

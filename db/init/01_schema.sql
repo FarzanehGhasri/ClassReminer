@@ -25,9 +25,16 @@ CREATE DOMAIN persian_name AS TEXT
         VALUE ~ '^[\u0621-\u063A\u0641-\u064A\u067E\u0686\u0698\u06A9\u06AF\u06BE\u06CC]+([ \u200C-][\u0621-\u063A\u0641-\u064A\u067E\u0686\u0698\u06A9\u06AF\u06BE\u06CC]+)*$'
     );
 
--- Iranian mobile number: starts with 09, exactly 11 digits in total.
-CREATE DOMAIN iran_mobile AS TEXT
-    CONSTRAINT iran_mobile_check CHECK (VALUE ~ '^09[0-9]{9}$');
+-- Phone numbers are stored in E.164 (+<country code><number>), so students
+-- outside Iran can register. The Iranian rule is unchanged in substance: a
+-- +98 number must be a mobile, which is what 09XXXXXXXXX means written
+-- internationally. core/models/country.py holds the per-country rules the
+-- registration form applies before anything reaches this column.
+CREATE DOMAIN phone_e164 AS TEXT
+    CONSTRAINT phone_e164_check CHECK (
+        VALUE ~ '^\+[1-9][0-9]{6,14}$'
+        AND (VALUE !~ '^\+98' OR VALUE ~ '^\+989[0-9]{9}$')
+    );
 
 -- Deliberately pragmatic: one @, a dot-bearing domain, no whitespace.
 -- A regex cannot prove an address is deliverable; that is what the
@@ -57,7 +64,7 @@ CREATE TABLE student (
     id               SERIAL PRIMARY KEY,
     first_name       persian_name  NOT NULL,
     last_name        persian_name  NOT NULL,
-    phone_number     iran_mobile   NOT NULL UNIQUE,
+    phone_number     phone_e164    NOT NULL UNIQUE,
     email            email_address NOT NULL,
 
     -- Chat handles for the Telegram and Bale channels. Same functional
@@ -76,7 +83,8 @@ CREATE TABLE student (
 CREATE UNIQUE INDEX student_email_lower_key ON student (lower(email));
 
 COMMENT ON TABLE  student IS 'One row per person who receives class reminders.';
-COMMENT ON COLUMN student.phone_number IS 'Iranian mobile, 09XXXXXXXXX (11 digits).';
+COMMENT ON COLUMN student.phone_number IS
+    'E.164, e.g. +989122025452. A +98 number must be a valid Iranian mobile.';
 
 -- ---------------------------------------------------------------------------
 -- class

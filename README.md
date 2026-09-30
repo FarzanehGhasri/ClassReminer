@@ -10,7 +10,11 @@ solid-email-automation/
 ├────| models/
 │   ├── __init__.py          # re-exports Recipient, Schedule — public API unchanged
 │   ├── recipient.py
-│   └── schedule.py
+│   ├── schedule.py
+│   ├── student.py           # the Student entity and its invariants
+│   ├── phone_number.py      # raw input -> E.164, or a reason why not
+│   └── country.py           # the country registry — add a country, nothing else changes
+├──── registration.py        # the registration use case
 |
 ├────| interfaces/
 │   ├── __init__.py          # re-exports all five — public API unchanged
@@ -33,8 +37,17 @@ solid-email-automation/
 │   └── 02_seed.sql                          # sample Persian data, first start only
 ├── docs/
 │   └── DATABASE.md                          # schema reference + normal-form analysis
+├── db/migrations/
+│   └── 001_phone_to_e164.sql                # for a database created before the form existed
 ├── scripts/
 │   └── import_students_csv.py               # one-off CSV → PostgreSQL migration
+│
+├── web/                                     # the student registration form
+│   ├── app.py                               # HTTP layer only — no rules, no SQL
+│   ├── templates/register.html
+│   └── static/register.css, register.js
+├── tests/
+│   └── test_registration.py                 # runs with no database (in-memory repository)
 │
 ├── infrastructure/                          # concrete implementations of the other interfaces
 │   ├── __init__.py
@@ -72,8 +85,10 @@ solid-email-automation/
 │   ├── solid-email-automation.service       # systemd unit (alternative to cron)
 │   └── solid-email-automation.timer         # runs every 5 minutes
 │
-└── main.py                                  # ★ COMPOSITION ROOT — only file that imports
-                                              #   concrete classes and wires them to interfaces
+├── main.py                                  # ★ COMPOSITION ROOT for the reminder job
+└── run_web.py                               # ★ COMPOSITION ROOT for the registration form
+                                              #   the only two files that import concrete
+                                              #   classes and wire them to interfaces
 
 
 
@@ -105,6 +120,22 @@ docker compose exec db psql -U classreminer -d classreminer
 See docs/DATABASE.md for the schema, the validation rules, how to import the
 old CSVs, and why the design is in normal form. Set RECIPIENT_SOURCE=csv to
 fall back to data/students.csv.
+
+Registration form
+Students enter their own details instead of you adding rows by hand:
+
+bash
+python3 run_web.py            # http://127.0.0.1:8000
+
+The phone field starts with a country picker and applies that country's rule.
+docs/REGISTRATION.md lists every field with an example and its limits.
+
+Tests
+bash
+python3 -m unittest discover -s tests -v
+
+They run without a database: RegistrationService depends on an interface, so an
+in-memory repository substitutes for PostgreSQL.
 
 Setup
 bash

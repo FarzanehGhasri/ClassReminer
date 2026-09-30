@@ -48,7 +48,7 @@ switch is reversible.
 | `id` | `serial` | PK |
 | `first_name` | `persian_name` | must be Persian letters |
 | `last_name` | `persian_name` | must be Persian letters |
-| `phone_number` | `iran_mobile` | `09XXXXXXXXX`, UNIQUE |
+| `phone_number` | `phone_e164` | `+989122025452`, UNIQUE. A `+98` number must be a valid Iranian mobile. |
 | `email` | `email_address` | UNIQUE on `lower(email)` |
 | `telegram_chat_id` | `text` | nullable, for the Telegram channel |
 | `bale_chat_id` | `text` | nullable, for the Bale channel |
@@ -92,7 +92,7 @@ second student on a class whose `class_format` is `private`.
 | rule | where | rejects |
 | --- | --- | --- |
 | Persian names | `persian_name` domain | `Dorsa`, `درسا۱`, `درساDorsa`, blanks, leading/trailing separators |
-| Iranian mobile | `iran_mobile` domain | `9122025452`, `08122025452`, wrong length, letters |
+| Phone number | `phone_e164` domain | `09122025452` (local form), `+988122025452`, wrong length, letters |
 | E-mail | `email_address` domain | no `@`, no TLD, `lkj;lj@gmail.com`, spaces, `a..b@`, trailing-dash domain |
 | Online class needs a link | `CHECK` on `class` | `delivery_mode='online'` with `class_link IS NULL` |
 | Link is a URL | `CHECK` on `class` | `meet.google.com/xyz` (no scheme) |
@@ -105,9 +105,13 @@ Persian names accept a space, a hyphen, and ZWNJ (U+200C, نیم‌فاصله), 
 reject input early with a readable message. The database remains the
 authority — the Python copy is a convenience, not the guarantee.
 
-Phone numbers are normalised before insert (`normalize_phone_number`):
-Persian digits, spaces, dashes, `+98`/`0098`/`98` prefixes and a missing
-leading zero are all folded into `09XXXXXXXXX`.
+Phone numbers are stored in E.164 and normalised before insert by
+`core/models/phone_number.py`: Persian digits, spaces, dashes, `+98`/`0098`
+prefixes and a missing leading zero all fold into `+989XXXXXXXXX`. The
+per-country rules live in `core/models/country.py`. See `docs/REGISTRATION.md`.
+
+An existing database created before this change is migrated with
+`db/migrations/001_phone_to_e164.sql`.
 
 ## Importing the old CSVs
 

@@ -16,6 +16,11 @@ Supported columns (extras are ignored, missing optional ones are fine):
     schedule_weekday, schedule_time, message_link   -> a class + enrolment
     delivery_mode, class_format                     -> default online / group
     telegram_chat_id, bale_chat_id
+    country                                         -> ISO code, defaults to IR
+
+Rows are validated by core.models.Student, the same entity the registration
+form builds, so the CSV path and the web path cannot disagree about what a
+valid student is.
 """
 import argparse
 import csv
@@ -27,7 +32,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import psycopg
 
 from config import settings
-from utils.validator import normalize_phone_number, validate_student
+from core.models.country import CountryRegistry
+from core.models.student import Student, StudentValidationError
 
 
 def split_name(row: dict) -> tuple:
@@ -44,11 +50,7 @@ def split_name(row: dict) -> tuple:
     return (parts[0] if parts else ""), ""
 
 
-def upsert_student(cur, row: dict) -> int:
-    first, last = split_name(row)
-    phone = normalize_phone_number(row.get("phone_number", ""))
-    email = (row.get("email") or "").strip()
-
+def upsert_student(cur, student, row: dict) -> int:
     cur.execute(
         """
         INSERT INTO student (first_name, last_name, phone_number, email,
@@ -63,10 +65,10 @@ def upsert_student(cur, row: dict) -> int:
         RETURNING id
         """,
         (
-            first,
-            last,
-            phone,
-            email,
+            student.first_name,
+            student.last_name,
+            student.phone.e164,
+            student.email,
             (row.get("telegram_chat_id") or "").strip() or None,
             (row.get("bale_chat_id") or "").strip() or None,
         ),
@@ -126,20 +128,25 @@ def main() -> int:
         rows = list(csv.DictReader(f))
 
     imported, enrolled, skipped = 0, 0, []
+    countries = CountryRegistry()
 
     with psycopg.connect(settings.postgres_dsn()) as conn:
         with conn.cursor() as cur:
             for line_number, row in enumerate(rows, start=2):
                 first, last = split_name(row)
-                problems = validate_student(
-                    first, last, row.get("phone_number", ""), row.get("email", "")
-                )
-                if problems:
-                    skipped.append((line_number, row.get("name") or f"{first} {last}", problems))
+                iso = (row.get("country") or "").strip() or countries.default.iso
+                try:
+                    student = Student.create(
+                        first, last, row.get("phone_number", ""), row.get("email", ""),
+                        countries.get(iso),
+                    )
+                except StudentValidationError as error:
+                    label = row.get("name") or f"{first} {last}".strip()
+                    skipped.append((line_number, label, list(error.errors.values())))
                     continue
 
                 try:
-                    student_id = upsert_student(cur, row)
+                    student_id = upsert_student(cur, student, row)
                     class_id = upsert_class(cur, row)
                     if class_id is not None:
                         cur.execute(

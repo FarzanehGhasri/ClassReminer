@@ -48,6 +48,12 @@ def postgres_dsn() -> str:
     )
 
 
+# ---------------------------------------------------------------------------
+# Registration form (run_web.py)
+# ---------------------------------------------------------------------------
+WEB_HOST = os.environ.get("WEB_HOST", "127.0.0.1")
+WEB_PORT = int(os.environ.get("WEB_PORT", "8000"))
+
 RECIPIENTS_CSV_PATH = os.environ.get("RECIPIENTS_CSV_PATH", os.path.join(BASE_DIR, "data", "students.csv"))
 SENT_LOG_DB_PATH = os.environ.get("SENT_LOG_DB_PATH", os.path.join(BASE_DIR, "data", "sent_log.db"))
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
