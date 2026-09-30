@@ -65,6 +65,33 @@ service from `docker-compose.yml` or reach it through an SSH tunnel:
 ssh -L 8080:127.0.0.1:8080 you@your-server
 ```
 
+If `docker compose up -d` fails with `port is already allocated`, something
+else on the machine holds that port — 8080 is a busy one. Pick another in
+`.env` and bring it up again:
+
+```
+ADMINER_PORT=8081
+```
+
+To find the culprit on Windows, in PowerShell:
+
+```powershell
+Get-Process -Id (Get-NetTCPConnection -LocalPort 8080).OwningProcess
+```
+
+and on macOS or Linux:
+
+```bash
+lsof -i :8080
+```
+
+On Windows a port can also be reserved by Hyper-V with nothing listening on
+it; `netsh interface ipv4 show excludedportrange protocol=tcp` lists those
+ranges, and the only fix is to use a port outside them. Docker reports such a
+conflict as `Bind for 0.0.0.0:<port>` even where the compose file binds to
+`127.0.0.1`, because availability is checked before the host address is
+applied.
+
 **Desktop client.** TablePlus, DBeaver or pgAdmin. Connect to host
 `localhost`, port `5432`, database `classreminer`, user `classreminer`, and
 the password from `.env`. Here the host *is* `localhost`, because the client
