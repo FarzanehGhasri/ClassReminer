@@ -18,6 +18,10 @@ from web.app import create_app
 
 
 def build_app():
+    # Called here rather than under __main__ so gunicorn, which imports this
+    # module and never runs __main__, still gets configured logging.
+    setup_logging()
+
     countries = CountryRegistry()
     repository = PostgresStudentWriter(
         settings.postgres_dsn(),
@@ -30,5 +34,4 @@ def build_app():
 application = build_app()
 
 if __name__ == "__main__":
-    setup_logging()
     application.run(host=settings.WEB_HOST, port=settings.WEB_PORT, debug=False)

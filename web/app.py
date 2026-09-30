@@ -28,6 +28,15 @@ def create_app(registration: RegistrationService, countries: CountryRegistry) ->
     def form_page():
         return render_template("register.html", countries=countries.as_list())
 
+    @app.get("/healthz")
+    def healthz():
+        """Liveness only — deliberately does not touch the database.
+
+        If this reported the database's state, a brief outage there would mark
+        this container unhealthy and restart it, which fixes nothing and drops
+        in-flight requests. Postgres has its own healthcheck."""
+        return jsonify({"status": "ok"}), 200
+
     @app.get("/api/countries")
     def country_list():
         """One source of truth for the dialling rules: the browser renders its

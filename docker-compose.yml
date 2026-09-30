@@ -21,6 +21,24 @@ services:
       timeout: 5s
       retries: 10
 
+  # The registration form. Students reach this; it writes to `db`.
+  web:
+    build: .
+    container_name: classreminer-web
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Overrides POSTGRES_HOST from .env for this container only. Inside the
+      # Docker network the database answers to its service name, `db`;
+      # `localhost` here would mean this container itself. .env keeps saying
+      # `localhost` so running `python3 run_web.py` on the host still works.
+      POSTGRES_HOST: db
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
   # A browser-based database GUI, for local use.
   # Open http://localhost:8080 once both containers are up.
   # This is a development convenience — see docs/DATABASE.md before putting it

@@ -31,7 +31,9 @@ solid-email-automation/
 │   ├── telegram_channel.py                  # sends via BotApiClient
 │   └── bale_channel.py                      # sends via BotApiClient (Telegram-compatible API)
 │
-├── docker-compose.yml                       # PostgreSQL 16 service (the database)
+├── docker-compose.yml                       # db + web + adminer
+├── Dockerfile                               # the app image (gunicorn)
+├── .dockerignore                            # keeps .env and the git history out of it
 ├── db/init/
 │   ├── 01_schema.sql                        # student / class / student_class + all validation
 │   └── 02_seed.sql                          # sample Persian data, first start only
@@ -114,19 +116,19 @@ student_class) with the Persian-name, Iranian-phone and e-mail rules enforced
 as SQL domains rather than trusted to the application.
 
 bash
-docker compose up -d                 # starts PostgreSQL, applies db/init/*.sql
-docker compose exec db psql -U classreminer -d classreminer   # terminal
-                                     # or http://localhost:8080 for a browser GUI
+docker compose up -d                 # database + registration form + Adminer
+
+  http://localhost:8000              # the registration form
+  http://localhost:8080              # Adminer, a browser GUI for the database
+  docker compose exec db psql -U classreminer -d classreminer    # or psql
 
 See docs/DATABASE.md for the schema, the validation rules, how to import the
 old CSVs, and why the design is in normal form. Set RECIPIENT_SOURCE=csv to
 fall back to data/students.csv.
 
 Registration form
-Students enter their own details instead of you adding rows by hand:
-
-bash
-python3 run_web.py            # http://127.0.0.1:8000
+Students enter their own details instead of you adding rows by hand. It comes
+up with docker compose; to run it from source instead, python3 run_web.py.
 
 The phone field starts with a country picker and applies that country's rule.
 docs/REGISTRATION.md lists every field with an example and its limits.

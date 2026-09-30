@@ -4,15 +4,56 @@ A student-facing form that writes straight into the `student` table, so you
 no longer add people by hand with `psql`.
 
 ```bash
-docker compose up -d                  # the database must be running
-python3 run_web.py                    # http://127.0.0.1:8000
+docker compose up -d        # database + form + Adminer, all of it
 ```
 
-In production use a real WSGI server rather than Flask's development one:
+The form is then on <http://localhost:8000>. That is the whole setup: the
+`web` service in `docker-compose.yml` builds the image from the `Dockerfile`
+and runs gunicorn, so nothing needs installing on the host.
+
+### Running it without Docker
+
+Useful while editing code, since a change takes effect on restart rather than
+on rebuild:
 
 ```bash
-gunicorn --bind 0.0.0.0:8000 'run_web:application'
+pip install -r requirements.txt
+python3 run_web.py          # http://127.0.0.1:8000
 ```
+
+The database still has to be up (`docker compose up -d db`). This path uses
+Flask's development server, which is single-threaded and not meant for real
+traffic — the container runs gunicorn instead.
+
+### After changing code
+
+The image holds a copy of the source, so a rebuild is needed for the running
+container to see edits:
+
+```bash
+docker compose up -d --build web
+```
+
+### Which host name to use
+
+Inside the Docker network, containers reach each other by service name, so the
+`web` container connects to `db`. On the host, the database is reached through
+the published port on `localhost`. `.env` says `localhost` and the compose file
+overrides it to `db` for that one container, so both paths work without you
+editing anything.
+
+| Running | `POSTGRES_HOST` |
+| --- | --- |
+| `web` container | `db` (set in `docker-compose.yml`) |
+| `python3 run_web.py` on the host | `localhost` (from `.env`) |
+
+### Health
+
+`GET /healthz` returns `{"status": "ok"}` and is what the container's
+healthcheck calls. It deliberately does not touch the database: if it did, a
+brief database outage would mark the web container unhealthy and restart it,
+which fixes nothing and drops in-flight requests. Postgres has its own
+healthcheck, and `web` waits on it before starting.
 
 ## The fields
 
@@ -100,8 +141,9 @@ Known limits, all deliberate:
   you assign the student to a class. The reminder job only reads enrolments, so
   a newly registered student receives nothing until you do that.
 - **There is no rate limiting and no CAPTCHA.** Anyone who can reach the URL can
-  create rows. Put it behind your own reverse proxy with a rate limit before
-  exposing it publicly.
+  create rows. Put it behind a reverse proxy with a rate limit, and TLS, before
+  exposing it publicly — gunicorn is meant to run behind one, not directly on
+  the open internet.
 - **There is no authentication and no edit or delete.** Corrections are made in
   `psql`.
 - **A phone number is validated for shape, not existence.** `+989120000000`

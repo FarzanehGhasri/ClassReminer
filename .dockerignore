@@ -1,0 +1,22 @@
+# Secrets must never reach the image. docker-compose injects them at runtime
+# through env_file instead, so the container gets the values without baking
+# them into a layer anyone who pulls the image could read.
+.env
+
+.git
+.gitignore
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+logs/*.log
+data/sent_log.db
+.DS_Store
+
+# Not needed at runtime.
+tests/
+docs/
+deploy/
+*.rar
+README.md
